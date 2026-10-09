@@ -1,0 +1,166 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  DATA_ENTRY
+  VIEWER
+}
+
+enum FlockStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum AuditAction {
+  INSERT
+  UPDATE
+  DELETE
+}
+
+model Profile {
+  id        String   @id @default(uuid()) // Corresponds to Supabase auth.users.id
+  email     String   @unique
+  fullName  String?
+  role      Role     @default(DATA_ENTRY)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  weeklyRecords WeeklyRecord[]
+  auditLogs     AuditLog[]
+
+  @@map("profiles")
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  code      String   @unique // e.g. "B"
+  name      String   // e.g. "Unit B"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sheds     Shed[]
+  flocks    Flock[]
+
+  @@map("units")
+}
+
+model Shed {
+  id        String   @id @default(uuid())
+  unitId    String   @map("unit_id")
+  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  shedNo    String   @map("shed_no") // e.g. "01"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flocks    Flock[]
+
+  @@unique([unitId, shedNo])
+  @@map("sheds")
+}
+
+model Flock {
+  id          String      @id @default(uuid())
+  flockNo     String      @map("flock_no") // e.g. "2866"
+  unitId      String      @map("unit_id")
+  unit        Unit        @relation(fields: [unitId], references: [id])
+  shedId      String      @map("shed_id")
+  shed        Shed        @relation(fields: [shedId], references: [id])
+  breed       String      // "Ross", "IR", "SASSO"
+  housingDate DateTime    @map("housing_date")
+  status      FlockStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  weeklyRecords WeeklyRecord[]
+
+  @@unique([unitId, flockNo])
+  @@map("flocks")
+}
+
+model StandardWeight {
+  id         String   @id @default(uuid())
+  breed      String   // "Ross", "IR", "SASSO"
+  ageWeeks   Int      @map("age_weeks")
+  stdWeightF Float    @map("std_weight_f") // Grams
+  stdWeightM Float?   @map("std_weight_m") // Grams
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([breed, ageWeeks])
+  @@map("standard_weights")
+}
+
+model WeeklyRecord {
+  id            String   @id @default(uuid())
+  flockId       String   @map("flock_id")
+  flock         Flock    @relation(fields: [flockId], references: [id], onDelete: Cascade)
+  ageWeeks      Int      @map("age_weeks")
+  weekEndDate   DateTime @map("week_end_date")
+
+  // Birds at start of week
+  housedF       Int      @map("housed_f")
+  housedM       Int      @map("housed_m")
+
+  // Weekly losses
+  mortalityF    Int      @default(0) @map("mortality_f")
+  mortalityM    Int      @default(0) @map("mortality_m")
+  soldF         Int      @default(0) @map("sold_f")
+  soldM         Int      @default(0) @map("sold_m")
+
+  // Weights (grams)
+  stdWeightF    Float?   @map("std_weight_f")
+  actualWeightF Float?   @map("actual_weight_f")
+  stdWeightM    Float?   @map("std_weight_m")
+  actualWeightM Float?   @map("actual_weight_m")
+
+  // Uniformity (%)
+  uniformityF   Float?   @map("uniformity_f")
+  uniformityM   Float?   @map("uniformity_m")
+
+  // Feed (g/bird)
+  feedGPerBirdF Float?   @map("feed_g_per_bird_f")
+  feedGPerBirdM Float?   @map("feed_g_per_bird_m")
+
+  createdBy     String?  @map("created_by")
+  creator       Profile? @relation(fields: [createdBy], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([flockId, ageWeeks])
+  @@map("weekly_records")
+}
+
+model AlertThreshold {
+  id                          String   @id @default(uuid())
+  breed                       String?  @unique // null means global default
+  weeklyMortalityPctThreshold Float    @default(1.0)  @map("weekly_mortality_pct_threshold")
+  weightDevPctThreshold       Float    @default(10.0) @map("weight_dev_pct_threshold")
+  minAgeWeeksForWeightAlert   Int      @default(4)    @map("min_age_weeks_for_weight_alert")
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@map("alert_thresholds")
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  tableName String      @map("table_name")
+  recordId  String      @map("record_id")
+  action    AuditAction
+  userId    String?     @map("user_id")
+  user      Profile?    @relation(fields: [userId], references: [id])
+  oldData   Json?       @map("old_data")
+  newData   Json?       @map("new_data")
+  createdAt DateTime    @default(now())
+
+  @@map("audit_logs")
+}
