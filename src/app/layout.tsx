@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { LocaleThemeProvider } from '@/context/LocaleThemeContext';
 import { Header } from '@/components/common/Header';
+import { OfflineSyncBanner } from '@/components/offline/OfflineSyncBanner';
 
 export const metadata: Metadata = {
   title: 'RBCL Flock Monitor | Unit-B Breeder Farm',
@@ -25,6 +26,7 @@ export default function RootLayout({
         <AuthProvider>
           <LocaleThemeProvider>
             <Header />
+            <OfflineSyncBanner />
             <main className="flex-1 pb-16 lg:pb-8">{children}</main>
           </LocaleThemeProvider>
         </AuthProvider>
