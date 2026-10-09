@@ -111,6 +111,30 @@ export function getStoredFlockRecords(flockId: string): WeeklyInputData[] {
     return INITIAL_RECORDS_2866;
   }
 
+  if (flockId === 'flock-2867') {
+    // Shed 02: Ross breed, 18 weeks, slightly better depletion
+    const records2867: WeeklyInputData[] = INITIAL_RECORDS_2866.slice(0, 18).map((r) => ({
+      ...r,
+      mortalityF: Math.max(1, Math.round(r.mortalityF * 0.85)),
+      mortalityM: Math.max(1, Math.round(r.mortalityM * 0.8)),
+      actualWeightF: r.actualWeightF ? Math.round(r.actualWeightF * 0.98) : null,
+    }));
+    localStorage.setItem(key, JSON.stringify(records2867));
+    return records2867;
+  }
+
+  if (flockId === 'flock-2868') {
+    // Shed 03: IR breed, 16 weeks
+    const records2868: WeeklyInputData[] = INITIAL_RECORDS_2866.slice(0, 16).map((r) => ({
+      ...r,
+      mortalityF: Math.max(1, Math.round(r.mortalityF * 1.1)),
+      mortalityM: Math.max(1, Math.round(r.mortalityM * 1.05)),
+      actualWeightF: r.actualWeightF ? Math.round(r.actualWeightF * 1.02) : null,
+    }));
+    localStorage.setItem(key, JSON.stringify(records2868));
+    return records2868;
+  }
+
   return [];
 }
 
